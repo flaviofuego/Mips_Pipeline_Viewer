@@ -1,0 +1,172 @@
+react-dom-client.development.js:24914 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+hot-reloader-client.tsx:371 [Fast Refresh] rebuilding
+hot-reloader-client.tsx:116 [Fast Refresh] done in 55ms
+SimulationContext.tsx:87 ----------- CICLO 2 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: Array(1)
+SimulationContext.tsx:128 Array(5)0: {Stage: 'IF', Instruction: '8C020000 (Inst 1)', isStall: false}1: {Stage: 'ID', Instruction: '---', isStall: false}2: {Stage: 'EX', Instruction: '---', isStall: false}3: {Stage: 'MEM', Instruction: '---', isStall: false}4: {Stage: 'WB', Instruction: '---', isStall: false}length: 5[[Prototype]]: Array(0)
+SimulationContext.tsx:245 ✅ AVANCE NORMAL: Todas las instrucciones avanzan
+SimulationContext.tsx:284 Nuevo estado: Array(1)0: "Inst 0 (8C020000): Etapa ID"length: 1[[Prototype]]: Array(0)at: ƒ at()concat: ƒ concat()constructor: ƒ Array()copyWithin: ƒ copyWithin()entries: ƒ entries()every: ƒ every()fill: ƒ fill()filter: ƒ filter()find: ƒ find()findIndex: ƒ findIndex()findLast: ƒ findLast()findLastIndex: ƒ findLastIndex()flat: ƒ flat()flatMap: ƒ flatMap()forEach: ƒ forEach()includes: ƒ includes()indexOf: ƒ indexOf()join: ƒ join()keys: ƒ keys()lastIndexOf: ƒ lastIndexOf()length: 0map: ƒ map()pop: ƒ pop()push: ƒ push()reduce: ƒ reduce()reduceRight: ƒ reduceRight()reverse: ƒ reverse()shift: ƒ shift()slice: ƒ slice()some: ƒ some()sort: ƒ sort()splice: ƒ splice()toLocaleString: ƒ toLocaleString()toReversed: ƒ toReversed()toSorted: ƒ toSorted()toSpliced: ƒ toSpliced()toString: ƒ toString()unshift: ƒ unshift()values: ƒ values()with: ƒ with()Symbol(Symbol.iterator): ƒ values()Symbol(Symbol.unscopables): {at: true, copyWithin: true, entries: true, fill: true, find: true, …}[[Prototype]]: Object
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
+SimulationContext.tsx:87 ----------- CICLO 2 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: Array(1)
+SimulationContext.tsx:128 Array(5)0: {Stage: 'IF', Instruction: '8C020000 (Inst 1)', isStall: false}1: {Stage: 'ID', Instruction: '---', isStall: false}2: {Stage: 'EX', Instruction: '---', isStall: false}3: {Stage: 'MEM', Instruction: '---', isStall: false}4: {Stage: 'WB', Instruction: '---', isStall: false}length: 5[[Prototype]]: Array(0)
+SimulationContext.tsx:245 ✅ AVANCE NORMAL: Todas las instrucciones avanzan
+SimulationContext.tsx:284 Nuevo estado: Array(1)
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
+SimulationContext.tsx:87 ----------- CICLO 3 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: Array(1)
+SimulationContext.tsx:128 Array(5)0: {Stage: 'IF', Instruction: '---', isStall: false}1: {Stage: 'ID', Instruction: '8C020000 (Inst 1)', isStall: false}2: {Stage: 'EX', Instruction: '---', isStall: false}3: {Stage: 'MEM', Instruction: '---', isStall: false}4: {Stage: 'WB', Instruction: '---', isStall: false}length: 5[[Prototype]]: Array(0)
+SimulationContext.tsx:245 ✅ AVANCE NORMAL: Todas las instrucciones avanzan
+SimulationContext.tsx:284 Nuevo estado: Array(2)
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
+SimulationContext.tsx:87 ----------- CICLO 3 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: Array(1)
+SimulationContext.tsx:128 Array(5)0: {Stage: 'IF', Instruction: '---', isStall: false}1: {Stage: 'ID', Instruction: '8C020000 (Inst 1)', isStall: false}2: {Stage: 'EX', Instruction: '---', isStall: false}3: {Stage: 'MEM', Instruction: '---', isStall: false}4: {Stage: 'WB', Instruction: '---', isStall: false}length: 5[[Prototype]]: Array(0)
+SimulationContext.tsx:245 ✅ AVANCE NORMAL: Todas las instrucciones avanzan
+SimulationContext.tsx:284 Nuevo estado: Array(2)
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
+SimulationContext.tsx:87 ----------- CICLO 4 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: Array(2)
+SimulationContext.tsx:128 Array(5)0: {Stage: 'IF', Instruction: '00442820 (Inst 3)', isStall: false}1: {Stage: 'ID', Instruction: '---', isStall: false}2: {Stage: 'EX', Instruction: '8C020000 (Inst 1)', isStall: false}3: {Stage: 'MEM', Instruction: '---', isStall: false}4: {Stage: 'WB', Instruction: '---', isStall: false}length: 5[[Prototype]]: Array(0)
+SimulationContext.tsx:245 ✅ AVANCE NORMAL: Todas las instrucciones avanzan
+SimulationContext.tsx:284 Nuevo estado: Array(2)
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
+SimulationContext.tsx:87 ----------- CICLO 4 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: Array(2)
+SimulationContext.tsx:128 Array(5)0: {Stage: 'IF', Instruction: '00442820 (Inst 3)', isStall: false}1: {Stage: 'ID', Instruction: '---', isStall: false}2: {Stage: 'EX', Instruction: '8C020000 (Inst 1)', isStall: false}3: {Stage: 'MEM', Instruction: '---', isStall: false}4: {Stage: 'WB', Instruction: '---', isStall: false}length: 5[[Prototype]]: Array(0)
+SimulationContext.tsx:245 ✅ AVANCE NORMAL: Todas las instrucciones avanzan
+SimulationContext.tsx:284 Nuevo estado: Array(2)
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
+SimulationContext.tsx:87 ----------- CICLO 5 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: Array(2)
+SimulationContext.tsx:128 Array(5)0: {Stage: 'IF', Instruction: '---', isStall: false}1: {Stage: 'ID', Instruction: '00442820 (Inst 3)', isStall: false}2: {Stage: 'EX', Instruction: '---', isStall: false}3: {Stage: 'MEM', Instruction: '8C020000 (Inst 1)', isStall: false}4: {Stage: 'WB', Instruction: '---', isStall: false}length: 5[[Prototype]]: Array(0)
+SimulationContext.tsx:195 🛑 STALL NECESARIO: Insertando bubble en EX
+SimulationContext.tsx:284 Nuevo estado: Array(3)
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
+SimulationContext.tsx:87 ----------- CICLO 5 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: Array(2)
+SimulationContext.tsx:128 Array(5)0: {Stage: 'IF', Instruction: '---', isStall: false}1: {Stage: 'ID', Instruction: '00442820 (Inst 3)', isStall: false}2: {Stage: 'EX', Instruction: '---', isStall: false}3: {Stage: 'MEM', Instruction: '8C020000 (Inst 1)', isStall: false}4: {Stage: 'WB', Instruction: '---', isStall: false}length: 5[[Prototype]]: Array(0)
+SimulationContext.tsx:195 🛑 STALL NECESARIO: Insertando bubble en EX
+SimulationContext.tsx:284 Nuevo estado: Array(3)
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
+SimulationContext.tsx:87 ----------- CICLO 6 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: Array(3)
+SimulationContext.tsx:128 Array(5)0: {Stage: 'IF', Instruction: '---', isStall: false}1: {Stage: 'ID', Instruction: '00442820 (Inst 3)', isStall: false}2: {Stage: 'EX', Instruction: '---', isStall: false}3: {Stage: 'MEM', Instruction: '---', isStall: false}4: {Stage: 'WB', Instruction: '8C020000 (Inst 1)', isStall: false}length: 5[[Prototype]]: Array(0)
+SimulationContext.tsx:245 ✅ AVANCE NORMAL: Todas las instrucciones avanzan
+SimulationContext.tsx:284 Nuevo estado: Array(1)
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
+SimulationContext.tsx:87 ----------- CICLO 6 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: Array(3)
+SimulationContext.tsx:128 Array(5)
+SimulationContext.tsx:245 ✅ AVANCE NORMAL: Todas las instrucciones avanzan
+SimulationContext.tsx:284 Nuevo estado: Array(1)
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
+SimulationContext.tsx:87 ----------- CICLO 7 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: Array(1)
+SimulationContext.tsx:128 Array(5)0: {Stage: 'IF', Instruction: '---', isStall: false}1: {Stage: 'ID', Instruction: '---', isStall: false}2: {Stage: 'EX', Instruction: '00442820 (Inst 3)', isStall: false}3: {Stage: 'MEM', Instruction: '---', isStall: false}4: {Stage: 'WB', Instruction: '---', isStall: false}length: 5[[Prototype]]: Array(0)
+SimulationContext.tsx:245 ✅ AVANCE NORMAL: Todas las instrucciones avanzan
+SimulationContext.tsx:284 Nuevo estado: Array(1)
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
+SimulationContext.tsx:87 ----------- CICLO 7 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: Array(1)
+SimulationContext.tsx:128 Array(5)
+SimulationContext.tsx:245 ✅ AVANCE NORMAL: Todas las instrucciones avanzan
+SimulationContext.tsx:284 Nuevo estado: Array(1)
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
+SimulationContext.tsx:87 ----------- CICLO 8 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: Array(1)
+SimulationContext.tsx:128 Array(5)
+SimulationContext.tsx:245 ✅ AVANCE NORMAL: Todas las instrucciones avanzan
+SimulationContext.tsx:284 Nuevo estado: Array(1)
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
+SimulationContext.tsx:87 ----------- CICLO 8 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: Array(1)
+SimulationContext.tsx:128 Array(5)
+SimulationContext.tsx:245 ✅ AVANCE NORMAL: Todas las instrucciones avanzan
+SimulationContext.tsx:284 Nuevo estado: Array(1)
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
+hot-reloader-client.tsx:371 [Fast Refresh] rebuilding
+[NEW] Explain Console errors by using Copilot in Edge: click
+         
+         to explain an error. 
+        Learn more
+        Don't show again
+SimulationContext.tsx:87 ----------- CICLO 9 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: ['Inst 2 (00442820): Etapa WB']
+SimulationContext.tsx:128 (index)StageInstructionisStall(index)StageInstructionisStall0'IF''---'false1'ID''---'false2'EX''---'false3'MEM''---'false4'WB''00442820 (Inst 3)'falseArray(5)
+SimulationContext.tsx:245 ✅ AVANCE NORMAL: Todas las instrucciones avanzan
+SimulationContext.tsx:284 Nuevo estado: []
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
+SimulationContext.tsx:87 ----------- CICLO 9 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: ['Inst 2 (00442820): Etapa WB']
+SimulationContext.tsx:128 (index)StageInstructionisStall(index)StageInstructionisStall0'IF''---'false1'ID''---'false2'EX''---'false3'MEM''---'false4'WB''00442820 (Inst 3)'falseArray(5)
+SimulationContext.tsx:245 ✅ AVANCE NORMAL: Todas las instrucciones avanzan
+SimulationContext.tsx:284 Nuevo estado: []
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
+hot-reloader-client.tsx:116 [Fast Refresh] done in 601ms
+hot-reloader-client.tsx:371 [Fast Refresh] rebuilding
+hot-reloader-client.tsx:116 [Fast Refresh] done in 14ms
+hot-reloader-client.tsx:371 [Fast Refresh] rebuilding
+hot-reloader-client.tsx:116 [Fast Refresh] done in 76ms
+hot-reloader-client.tsx:371 [Fast Refresh] rebuilding
+hot-reloader-client.tsx:116 [Fast Refresh] done in 50ms
+hot-reloader-client.tsx:371 [Fast Refresh] rebuilding
+hot-reloader-client.tsx:116 [Fast Refresh] done in 26ms
+SimulationContext.tsx:87 ----------- CICLO 10 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: []
+SimulationContext.tsx:128 (index)StageInstructionisStall(index)StageInstructionisStall0'IF''---'false1'ID''---'false2'EX''---'false3'MEM''---'false4'WB''---'falseArray(5)
+SimulationContext.tsx:245 ✅ AVANCE NORMAL: Todas las instrucciones avanzan
+SimulationContext.tsx:284 Nuevo estado: []
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
+SimulationContext.tsx:87 ----------- CICLO 10 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: []
+SimulationContext.tsx:128 (index)StageInstructionisStall(index)StageInstructionisStall0'IF''---'false1'ID''---'false2'EX''---'false3'MEM''---'false4'WB''---'falseArray(5)
+SimulationContext.tsx:245 ✅ AVANCE NORMAL: Todas las instrucciones avanzan
+SimulationContext.tsx:284 Nuevo estado: []
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
+SimulationContext.tsx:87 ----------- CICLO 11 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: []
+SimulationContext.tsx:128 (index)StageInstructionisStall(index)StageInstructionisStall0'IF''---'false1'ID''---'false2'EX''---'false3'MEM''---'false4'WB''---'falseArray(5)
+SimulationContext.tsx:245 ✅ AVANCE NORMAL: Todas las instrucciones avanzan
+SimulationContext.tsx:284 Nuevo estado: []
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
+SimulationContext.tsx:87 ----------- CICLO 11 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: []
+SimulationContext.tsx:128 (index)StageInstructionisStall(index)StageInstructionisStall0'IF''---'false1'ID''---'false2'EX''---'false3'MEM''---'false4'WB''---'falseArray(5)
+SimulationContext.tsx:245 ✅ AVANCE NORMAL: Todas las instrucciones avanzan
+SimulationContext.tsx:284 Nuevo estado: []
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
+SimulationContext.tsx:87 ----------- CICLO 12 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: []
+SimulationContext.tsx:128 (index)StageInstructionisStall(index)StageInstructionisStall0'IF''---'false1'ID''---'false2'EX''---'false3'MEM''---'false4'WB''---'falseArray(5)
+SimulationContext.tsx:245 ✅ AVANCE NORMAL: Todas las instrucciones avanzan
+SimulationContext.tsx:284 Nuevo estado: []
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
+SimulationContext.tsx:87 ----------- CICLO 12 -----------
+SimulationContext.tsx:88 Estado actual del pipeline: []
+SimulationContext.tsx:128 (index)StageInstructionisStall(index)StageInstructionisStall0'IF''---'false1'ID''---'false2'EX''---'false3'MEM''---'false4'WB''---'falseArray(5)
+SimulationContext.tsx:245 ✅ AVANCE NORMAL: Todas las instrucciones avanzan
+SimulationContext.tsx:284 Nuevo estado: []
+SimulationContext.tsx:287 Forwarding Paths: 0
+SimulationContext.tsx:288 ----------------------------------------
