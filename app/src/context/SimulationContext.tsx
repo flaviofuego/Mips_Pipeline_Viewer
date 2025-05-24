@@ -3,30 +3,34 @@
 
 import type { PropsWithChildren } from 'react';
 import * as React from 'react';
-import { decodeMIPSInstruction, hasRAWHazard, canForward, calculateStallsNeeded, type DecodedInstruction } from '@/lib/mips-decoder';
+import { decodeMIPSInstruction, hasRAWHazard, canForward, type DecodedInstruction } from '@/lib/mips-decoder';
 
-// Define the stage names
 const STAGE_NAMES = ['IF', 'ID', 'EX', 'MEM', 'WB'] as const;
 type StageName = typeof STAGE_NAMES[number];
 
-// Forwarding path representation
 export interface ForwardingPath {
   from: { instructionIndex: number; stage: number };
   to: { instructionIndex: number; stage: number };
   register: number;
 }
 
-// Enhanced instruction state
 export interface InstructionState {
   index: number;
   hex: string;
   decoded: DecodedInstruction;
-  currentStage: number | null; // 0-4 for stages, null if not in pipeline
-  isStall: boolean; // Si esta instrucción es un bubble/stall
-  stallsInserted: number; // Número de stalls insertados antes de esta instrucción
+  currentStage: number | null;
+  isStall: boolean;
+  cycleEntered: number; // Ciclo en que entró al pipeline
 }
 
-// Define the shape of the context state
+// Nuevo tipo para mantener el historial completo
+interface PipelineSnapshot {
+  cycle: number;
+  stages: (InstructionState | null)[];
+  forwardingPaths: ForwardingPath[];
+  stallsInserted: number[];
+}
+
 interface SimulationState {
   instructions: string[];
   decodedInstructions: DecodedInstruction[];
@@ -36,17 +40,17 @@ interface SimulationState {
   isRunning: boolean;
   stageCount: number;
   isFinished: boolean;
-
-  // Hazard handling options
   stallsEnabled: boolean;
   forwardingEnabled: boolean;
-
-  // Visual information
-  forwardingPaths: ForwardingPath[]; // Paths activos en el ciclo actual
-  stallsThisCycle: number[]; // Instrucciones que son stalls en este ciclo
+  forwardingPaths: ForwardingPath[];
+  stallsThisCycle: number[];
+  
+  // Nuevo: historial completo del pipeline
+  pipelineHistory: PipelineSnapshot[];
+  nextInstructionToFetch: number; // Índice de la próxima instrucción a cargar
+  totalStallsInserted: number; // Total de stalls insertados hasta ahora
 }
 
-// Define the shape of the context actions
 interface SimulationActions {
   startSimulation: (submittedInstructions: string[]) => void;
   resetSimulation: () => void;
@@ -56,7 +60,6 @@ interface SimulationActions {
   setForwardingEnabled: (enabled: boolean) => void;
 }
 
-// Create the contexts
 const SimulationStateContext = React.createContext<SimulationState | undefined>(undefined);
 const SimulationActionsContext = React.createContext<SimulationActions | undefined>(undefined);
 
@@ -75,159 +78,115 @@ const initialState: SimulationState = {
   forwardingEnabled: false,
   forwardingPaths: [],
   stallsThisCycle: [],
+  pipelineHistory: [],
+  nextInstructionToFetch: 0,
+  totalStallsInserted: 0,
 };
 
-/**
- * Calcula el siguiente estado de la simulación
- * 
- * Esta función implementa la lógica correcta de pipeline con manejo de hazards.
- * Los stalls funcionan pausando instrucciones específicas, no creando bubbles infinitas.
- */
 const calculateNextState = (currentState: SimulationState): SimulationState => {
-  console.log(`----------- CICLO ${currentState.currentCycle + 1} -----------`);
-  console.log('Estado actual del pipeline:',
-    currentState.instructionStates.map(i =>
-      `Inst ${i.index} (${i.hex}): Etapa ${i.currentStage !== null ? STAGE_NAMES[i.currentStage] : 'COMPLETA'}`
-    )
-  );
-
-
+  console.log(`\n======= CICLO ${currentState.currentCycle + 1} =======`);
+  
   if (!currentState.isRunning || currentState.isFinished) {
     return currentState;
   }
 
   const nextCycle = currentState.currentCycle + 1;
-
-  // Crear una representación simple del pipeline para este ciclo
-  // Cada posición representa qué instrucción está en qué etapa
-  const pipelineState: { [stage: number]: InstructionState | null } = {
-    0: null, // IF
-    1: null, // ID  
-    2: null, // EX
-    3: null, // MEM
-    4: null  // WB
-  };
-
-  // Llenar el estado actual del pipeline
+  const newForwardingPaths: ForwardingPath[] = [];
+  const newStallsThisCycle: number[] = [];
+  
+  // Crear el estado actual del pipeline (5 etapas)
+  const currentPipeline: (InstructionState | null)[] = new Array(5).fill(null);
+  
+  // Llenar el pipeline actual con las instrucciones activas
   currentState.instructionStates.forEach(inst => {
     if (inst.currentStage !== null && !inst.isStall) {
-      pipelineState[inst.currentStage] = inst;
+      currentPipeline[inst.currentStage] = inst;
     }
   });
 
-  // Generar una tabla para visualizar mejor el estado del pipeline
-  const pipelineTable = STAGE_NAMES.map(stage => {
-    const stageIndex = STAGE_NAMES.indexOf(stage);
-    const inst = pipelineState[stageIndex];
-    return {
-      Stage: stage,
-      Instruction: inst ? `${inst.hex} (Inst ${inst.index + 1})` : '---',
-      isStall: inst ? inst.isStall : false
-    };
-  });
-  console.table(pipelineTable);
-
-  // Detectar si hay hazards que requieren stalls
+  // Detectar hazards
   let needsStall = false;
-  const forwardingPaths: ForwardingPath[] = [];
+  const instInIF = currentPipeline[0];
+  const instInID = currentPipeline[1];
+  const instInEX = currentPipeline[2];
+  const instInMEM = currentPipeline[3];
+  const instInWB = currentPipeline[4];
 
-  if (currentState.stallsEnabled) {
-    // Revisar hazards entre instrucciones en ID y EX/MEM
-    const instInID = pipelineState[1]; // Instrucción en ID
-    const instInEX = pipelineState[2]; // Instrucción en EX
-    const instInMEM = pipelineState[3]; // Instrucción en MEM
-
-    if (instInID) {
-      // Revisar hazard con instrucción en EX
-      if (instInEX && hasRAWHazard(instInEX.decoded, instInID.decoded)) {
-        console.log(`HAZARD DETECTADO: Entre instrucción ${instInEX.index} (${instInEX.hex}) en EX y ${instInID.index} (${instInID.hex}) en ID`);
-        console.log('Registros en conflicto:', instInEX.decoded.writesTo.filter(reg =>
-          instInID.decoded.readsFrom.includes(reg)
-        ));
-
-        if (currentState.forwardingEnabled && canForward(instInEX.decoded, instInID.decoded, 1)) {
-          // Puede resolverse con forwarding
-          console.log('✅ Se resuelve con forwarding');
-          const sharedRegisters = instInEX.decoded.writesTo.filter(reg =>
-            instInID.decoded.readsFrom.includes(reg)
-          );
-          sharedRegisters.forEach(reg => {
-            forwardingPaths.push({
+  if (currentState.stallsEnabled && instInID) {
+    // Verificar hazard con instrucción en EX
+    if (instInEX && hasRAWHazard(instInEX.decoded, instInID.decoded)) {
+      if (currentState.forwardingEnabled && canForward(instInEX.decoded, instInID.decoded, 1)) {
+        console.log(`✅ Forwarding: EX→ID para registro ${instInEX.decoded.writesTo[0]}`);
+        instInEX.decoded.writesTo.forEach(reg => {
+          if (instInID.decoded.readsFrom.includes(reg)) {
+            newForwardingPaths.push({
               from: { instructionIndex: instInEX.index, stage: 2 },
               to: { instructionIndex: instInID.index, stage: 1 },
               register: reg
             });
-          });
-        } else {
-          // Necesita stall
-          needsStall = true;
-        }
+          }
+        });
+      } else {
+        console.log(`🛑 STALL necesario: hazard entre EX e ID`);
+        needsStall = true;
       }
-
-      // Revisar hazard con instrucción en MEM (load-use hazard)
-      if (instInMEM && hasRAWHazard(instInMEM.decoded, instInID.decoded)) {
-        if (instInMEM.decoded.isLoad) {
-          // Load-use hazard: siempre necesita stall
-          needsStall = true;
-        } else if (currentState.forwardingEnabled && canForward(instInMEM.decoded, instInID.decoded, 2)) {
-          // Puede resolverse con forwarding
-          const sharedRegisters = instInMEM.decoded.writesTo.filter(reg =>
-            instInID.decoded.readsFrom.includes(reg)
-          );
-          sharedRegisters.forEach(reg => {
-            forwardingPaths.push({
+    }
+    
+    // Verificar hazard con instrucción en MEM (especialmente load-use)
+    if (instInMEM && hasRAWHazard(instInMEM.decoded, instInID.decoded)) {
+      if (instInMEM.decoded.isLoad) {
+        console.log(`🛑 Load-use hazard detectado!`);
+        needsStall = true;
+      } else if (currentState.forwardingEnabled && canForward(instInMEM.decoded, instInID.decoded, 2)) {
+        console.log(`✅ Forwarding: MEM→ID para registro ${instInMEM.decoded.writesTo[0]}`);
+        instInMEM.decoded.writesTo.forEach(reg => {
+          if (instInID.decoded.readsFrom.includes(reg)) {
+            newForwardingPaths.push({
               from: { instructionIndex: instInMEM.index, stage: 3 },
               to: { instructionIndex: instInID.index, stage: 1 },
               register: reg
             });
-          });
-        } else {
-          needsStall = true;
-        }
+          }
+        });
       }
     }
   }
 
-  // Crear el nuevo estado de instrucciones
-  const newInstructionStates: InstructionState[] = [];
-
+  // Crear el nuevo estado del pipeline
+  const nextPipeline: (InstructionState | null)[] = new Array(5).fill(null);
+  
   if (needsStall) {
-    console.log('🛑 STALL NECESARIO: Insertando bubble en EX');
-
-    // STALL: las instrucciones en IF e ID se quedan donde están
-    // Las instrucciones en EX, MEM, WB avanzan normalmente
-
-    // Avanzar instrucciones en etapas posteriores (EX, MEM, WB)
-    [2, 3, 4].forEach(stage => {
-      const inst = pipelineState[stage];
-      if (inst) {
-        const newInst = { ...inst };
-        newInst.currentStage = stage + 1;
-        if (newInst.currentStage >= currentState.stageCount) {
-          newInst.currentStage = null; // Sale del pipeline
-        }
-        if (newInst.currentStage !== null) {
-          newInstructionStates.push(newInst);
-        }
+    console.log("Insertando BUBBLE en EX");
+    
+    // EX, MEM, WB avanzan normalmente
+    if (instInEX) {
+      const newStage = instInEX.currentStage! + 1;
+      if (newStage < 5) {
+        nextPipeline[newStage] = { ...instInEX, currentStage: newStage };
       }
-    });
-
-    // Las instrucciones en IF e ID se mantienen en su lugar (stall)
-    [0, 1].forEach(stage => {
-      const inst = pipelineState[stage];
-      if (inst) {
-        const newInst = { ...inst };
-        // No cambia currentStage - se queda en la misma etapa
-        newInstructionStates.push(newInst);
+    }
+    if (instInMEM) {
+      const newStage = instInMEM.currentStage! + 1;
+      if (newStage < 5) {
+        nextPipeline[newStage] = { ...instInMEM, currentStage: newStage };
       }
-    });
-
-    // Insertar un bubble en EX (donde habría avanzado la instrucción de ID)
-    const bubbleInstruction: InstructionState = {
-      index: -nextCycle, // Índice único para este bubble
-      hex: 'BUBBLE',
+    }
+    // WB sale del pipeline
+    
+    // IF e ID se quedan donde están
+    if (instInIF) {
+      nextPipeline[0] = { ...instInIF };
+    }
+    if (instInID) {
+      nextPipeline[1] = { ...instInID };
+    }
+    
+    // Insertar bubble en EX
+    const bubble: InstructionState = {
+      index: -1000 - nextCycle, // Índice único negativo
+      hex: 'NOP',
       decoded: {
-        hex: 'BUBBLE',
+        hex: 'NOP',
         opcode: -1,
         type: 'R',
         isLoad: false,
@@ -235,72 +194,86 @@ const calculateNextState = (currentState: SimulationState): SimulationState => {
         readsFrom: [],
         writesTo: []
       },
-      currentStage: 2, // Bubble en EX
+      currentStage: 2,
       isStall: true,
-      stallsInserted: 0
+      cycleEntered: nextCycle
     };
-    newInstructionStates.push(bubbleInstruction);
-
+    nextPipeline[2] = bubble;
+    newStallsThisCycle.push(bubble.index);
+    
   } else {
-    console.log('✅ AVANCE NORMAL: Todas las instrucciones avanzan');
-
-    // AVANCE NORMAL: todas las instrucciones avanzan una etapa
-    Object.values(pipelineState).forEach(inst => {
+    // Avance normal: todas las instrucciones avanzan
+    currentPipeline.forEach((inst, stage) => {
       if (inst && !inst.isStall) {
-        const newInst = { ...inst };
-        newInst.currentStage = (newInst.currentStage || 0) + 1;
-        if (newInst.currentStage >= currentState.stageCount) {
-          newInst.currentStage = null; // Sale del pipeline
-        }
-        if (newInst.currentStage !== null) {
-          newInstructionStates.push(newInst);
+        const newStage = stage + 1;
+        if (newStage < 5) {
+          nextPipeline[newStage] = { ...inst, currentStage: newStage };
         }
       }
     });
-
-    // Introducir nueva instrucción en IF si hay más instrucciones disponibles
-    const nextInstructionIndex = Math.floor((nextCycle - 1) -
-      currentState.instructionStates.filter(inst => inst.isStall).length);
-
-    if (nextInstructionIndex < currentState.decodedInstructions.length && !pipelineState[0]) {
-      const newInstruction: InstructionState = {
-        index: nextInstructionIndex,
-        hex: currentState.instructions[nextInstructionIndex],
-        decoded: currentState.decodedInstructions[nextInstructionIndex],
-        currentStage: 0, // Entra en IF
+    
+    // Si hay espacio en IF y quedan instrucciones, cargar la siguiente
+    if (!nextPipeline[0] && currentState.nextInstructionToFetch < currentState.instructions.length) {
+      const newInst: InstructionState = {
+        index: currentState.nextInstructionToFetch,
+        hex: currentState.instructions[currentState.nextInstructionToFetch],
+        decoded: currentState.decodedInstructions[currentState.nextInstructionToFetch],
+        currentStage: 0,
         isStall: false,
-        stallsInserted: 0
+        cycleEntered: nextCycle
       };
-      newInstructionStates.push(newInstruction);
+      nextPipeline[0] = newInst;
+      console.log(`Nueva instrucción ${newInst.index} entra en IF`);
     }
   }
 
-  // Determinar si la simulación ha terminado
-  const remainingInstructions = newInstructionStates.filter(inst => !inst.isStall);
-  const allInstructionsProcessed = remainingInstructions.length === 0 &&
-    nextCycle > currentState.instructions.length + currentState.stageCount + 2;
+  // Convertir el pipeline a lista de instrucciones activas
+  const newInstructionStates = nextPipeline.filter(inst => inst !== null) as InstructionState[];
+  
+  // Guardar snapshot del pipeline
+  const snapshot: PipelineSnapshot = {
+    cycle: nextCycle,
+    stages: [...nextPipeline],
+    forwardingPaths: newForwardingPaths,
+    stallsInserted: newStallsThisCycle
+  };
 
+  // Verificar si la simulación terminó
+  const hasActiveInstructions = newInstructionStates.some(inst => !inst.isStall);
+  const allInstructionsFetched = currentState.nextInstructionToFetch >= currentState.instructions.length;
+  const pipelineEmpty = newInstructionStates.length === 0 || 
+                       newInstructionStates.every(inst => inst.isStall);
+  const isFinished = allInstructionsFetched && pipelineEmpty;
 
-  console.log('Nuevo estado:', newInstructionStates.map(i =>
-    `Inst ${i.index} (${i.hex}): Etapa ${i.currentStage !== null ? STAGE_NAMES[i.currentStage] : 'COMPLETA'}${i.isStall ? ' [BUBBLE]' : ''}`
-  ));
-  console.log(`Forwarding Paths: ${forwardingPaths.length}`);
-  console.log('----------------------------------------');
+  // Logging para debug
+  console.log("Pipeline en ciclo", nextCycle, ":");
+  STAGE_NAMES.forEach((stage, idx) => {
+    const inst = nextPipeline[idx];
+    if (inst) {
+      console.log(`  ${stage}: Inst ${inst.index} (${inst.hex})${inst.isStall ? ' [BUBBLE]' : ''}`);
+    } else {
+      console.log(`  ${stage}: ---`);
+    }
+  });
 
   return {
     ...currentState,
     currentCycle: nextCycle,
     instructionStates: newInstructionStates,
-    isFinished: allInstructionsProcessed,
-    isRunning: !allInstructionsProcessed,
-    forwardingPaths,
-    stallsThisCycle: newInstructionStates.filter(inst => inst.isStall).map(inst => inst.index)
+    forwardingPaths: newForwardingPaths,
+    stallsThisCycle: newStallsThisCycle,
+    pipelineHistory: [...currentState.pipelineHistory, snapshot],
+    nextInstructionToFetch: needsStall ? currentState.nextInstructionToFetch : 
+                           (currentState.nextInstructionToFetch + (nextPipeline[0] && 
+                            !currentPipeline[0] ? 1 : 0)),
+    totalStallsInserted: currentState.totalStallsInserted + (needsStall ? 1 : 0),
+    isFinished,
+    isRunning: !isFinished,
+    maxCycles: isFinished ? nextCycle : currentState.maxCycles
   };
-
-
 };
 
-// Create the provider component
+// El resto del componente permanece igual...
 export function SimulationProvider({ children }: PropsWithChildren) {
   const [simulationState, setSimulationState] = React.useState<SimulationState>(initialState);
   const intervalRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -324,7 +297,7 @@ export function SimulationProvider({ children }: PropsWithChildren) {
         }
         return nextState;
       });
-    }, 1500); // Un poco más lento para observar mejor los hazards
+    }, 1000); // Más rápido para testing
   }, [simulationState.isRunning, simulationState.isFinished]);
 
   const resetSimulation = React.useCallback(() => {
@@ -339,33 +312,22 @@ export function SimulationProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    // Decodificar todas las instrucciones
     const decodedInstructions = submittedInstructions.map(hex => decodeMIPSInstruction(hex));
-
-    // Calcular máximo de ciclos (estimación considerando posibles stalls)
-    const estimatedMaxCycles = submittedInstructions.length + DEFAULT_STAGE_COUNT +
-      (simulationState.stallsEnabled ? Math.floor(submittedInstructions.length / 2) : 0);
-
-    // Crear estado inicial de instrucciones
-    const initialInstructionStates: InstructionState[] = [{
-      index: 0,
-      hex: submittedInstructions[0],
-      decoded: decodedInstructions[0],
-      currentStage: 0, // Empieza en IF
-      isStall: false,
-      stallsInserted: 0
-    }];
+    const estimatedMaxCycles = submittedInstructions.length + DEFAULT_STAGE_COUNT + 10;
 
     setSimulationState({
       ...initialState,
       instructions: submittedInstructions,
       decodedInstructions,
-      instructionStates: initialInstructionStates,
-      currentCycle: 1,
+      instructionStates: [],
+      currentCycle: 0,
       maxCycles: estimatedMaxCycles,
       isRunning: true,
       stallsEnabled: simulationState.stallsEnabled,
       forwardingEnabled: simulationState.forwardingEnabled,
+      pipelineHistory: [],
+      nextInstructionToFetch: 0,
+      totalStallsInserted: 0
     });
   }, [resetSimulation, simulationState.stallsEnabled, simulationState.forwardingEnabled]);
 
@@ -396,12 +358,10 @@ export function SimulationProvider({ children }: PropsWithChildren) {
     setSimulationState(prev => ({
       ...prev,
       forwardingEnabled: enabled,
-      // Si activamos forwarding, automáticamente activamos stalls
       stallsEnabled: enabled || prev.stallsEnabled
     }));
   };
 
-  // Effect to manage the interval timer
   React.useEffect(() => {
     if (simulationState.isRunning && !simulationState.isFinished) {
       runClock();
@@ -434,7 +394,6 @@ export function SimulationProvider({ children }: PropsWithChildren) {
   );
 }
 
-// Custom hooks for easy context consumption
 export function useSimulationState() {
   const context = React.useContext(SimulationStateContext);
   if (context === undefined) {
