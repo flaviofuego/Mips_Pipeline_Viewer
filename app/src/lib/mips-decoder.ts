@@ -128,6 +128,49 @@ export function decodeMIPSInstruction(hex: string): DecodedInstruction {
   return instruction;
 }
 
+export function decodeHexToInstructions(hexInstruction: DecodedInstruction, instIndex: number): string {
+  if (!hexInstruction) return `Inst ${instIndex + 1}`;
+
+  // Formatear el código decodificado según el tipo
+  if (hexInstruction.type === 'R') {
+    // Formato R: op rd, rs, rt
+    const opNames: { [key: number]: string } = {
+      0: 'add', // Ejemplo - necesitarás expandir esto
+      2: 'sub',
+      // Agregar más según tus opcodes
+    };
+    const opName = opNames[hexInstruction.opcode] || `r${hexInstruction.opcode}`;
+    return `${opName} $${hexInstruction.rd}, $${hexInstruction.rs}, $${hexInstruction.rt}`;
+  } else if (hexInstruction.type === 'I') {
+    // Formato I: op rt, rs, immediate
+    const opNames: { [key: number]: string } = {
+      8: 'addi',
+      35: 'lw',
+      43: 'sw',
+      4: 'beq',
+      5: 'bne',
+      // Agregar más según tus opcodes
+    };
+    const opName = opNames[hexInstruction.opcode] || `i${hexInstruction.opcode}`;
+    if (hexInstruction.isLoad || hexInstruction.isStore) {
+      return `${opName} $${hexInstruction.rt}, ${hexInstruction.immediate}($${hexInstruction.rs})`;
+    } else {
+      return `${opName} $${hexInstruction.rt}, $${hexInstruction.rs}, ${hexInstruction.immediate}`;
+    }
+  } else if (hexInstruction.type === 'J') {
+    // Formato J: op address
+    const opNames: { [key: number]: string } = {
+      2: 'j',
+      3: 'jal',
+      // Agregar más según tus opcodes
+    };
+    const opName = opNames[hexInstruction.opcode] || `j${hexInstruction.opcode}`;
+    return `${opName} ${hexInstruction.immediate || 0}`;
+  }
+                          
+  return `Inst ${instIndex + 1}`;
+}
+
 /**
  * Detecta si existe un hazard RAW entre dos instrucciones
  */
