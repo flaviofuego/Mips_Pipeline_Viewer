@@ -180,21 +180,41 @@ export function hasRAWHazard(producer: DecodedInstruction, consumer: DecodedInst
 }
 
 /**
- * Determina si un hazard puede ser resuelto con forwarding
+ * Detector de forwarding mejorado
+ * 
+ * Determina si un hazard de datos puede ser resuelto mediante forwarding,
+ * considerando el tipo de instrucción y la distancia entre etapas.
+ * 
+ * @param producer Instrucción que produce el valor (escribe en un registro)
+ * @param consumer Instrucción que consume el valor (lee de un registro)
+ * @param stageDistance Distancia entre las etapas (2=EX→ID, 3=MEM→ID)
+ * @returns Un objeto con información sobre el forwarding
  */
 export function canForward(producer: DecodedInstruction, consumer: DecodedInstruction, stageDistance: number): boolean {
+  // Verificar si realmente hay un hazard RAW entre estas instrucciones
+  const commonRegisters = producer.writesTo.filter(reg => consumer.readsFrom.includes(reg));
   if (!hasRAWHazard(producer, consumer)) {
-    return false; // No hay hazard para resolver
-  }
-  
-  // Load-use hazard: necesita al menos un stall incluso con forwarding
-  if (producer.isLoad && stageDistance === 1) {
     return false;
   }
   
-  // Para otras instrucciones, el forwarding puede resolver el hazard
-  // si la instrucción productora está en EX o más adelante
-  return stageDistance >= 1;
+  if (producer.isLoad && consumer.isStore) {
+    // Load → Store: no se puede hacer forwarding
+    return false;
+  }
+  if (producer.isLoad && stageDistance === 1) {
+    return false; // Load-use hazard: no se puede hacer forwarding
+  }
+
+  if (producer.isStore && consumer.isLoad) {
+    // Store → Load: no se puede hacer forwarding
+    return false;
+  }
+
+  if (producer.writesTo.length === 0 || consumer.readsFrom.length === 0) {
+    return false; // No hay registros comunes
+  }
+  
+  return true;
 }
 
 /**
