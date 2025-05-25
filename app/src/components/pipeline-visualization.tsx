@@ -268,6 +268,18 @@ export function PipelineVisualization() {
             <span>Forwarding Activo</span>
           </div>
           <div className="flex items-center gap-1">
+            <div className="w-5 h-5 bg-purple-700 text-white text-xs rounded-full flex items-center justify-center">
+              <span className="text-[10px]">S</span>
+            </div>
+            <span>Fuente de Forwarding</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-5 h-5 bg-purple-700 text-white text-xs rounded-full flex items-center justify-center">
+              <span className="text-[10px]">D</span>
+            </div>
+            <span>Destino de Forwarding</span>
+          </div>
+          <div className="flex items-center gap-1">
             <div className="w-3 h-3 bg-orange-200 border border-orange-300 rounded"></div>
             <span>Etapa en Stall</span>
           </div>
@@ -334,6 +346,12 @@ export function PipelineVisualization() {
                       const hasActiveForwarding = cellData.hasForwardingFromActive || cellData.hasForwardingToActive;
                       const hasForwardingHistory = cellData.hasParticipatedInForwarding;
 
+                      // Buscar información de forwarding para este ciclo y celda
+                      const forwardingInfo = forwardingPaths.filter(path => 
+                        (path.from.instructionIndex === instIndex && path.from.stage === cellData.stage) || 
+                        (path.to.instructionIndex === instIndex && path.to.stage === cellData.stage)
+                      );
+
                       return (
                         <TableCell
                           key={`inst-${instIndex}-cycle-${c}`}
@@ -369,17 +387,35 @@ export function PipelineVisualization() {
                                       {stageData.name}
                                     </span>
                                     
-                                    {/* Indicador de forwarding activo */}
-                                    {cellData.hasForwardingFromActive && (
-                                      <div className="absolute -top-1 -right-1 bg-purple-700 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
-                                        →
-                                      </div>
-                                    )}
-                                    {cellData.hasForwardingToActive && (
-                                      <div className="absolute -top-1 -left-1 bg-purple-700 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
-                                        ←
-                                      </div>
-                                    )}
+                                    {/* Indicadores de forwarding mejorados */}
+                                    {forwardingInfo.map((fwInfo, idx) => {
+                                      // Determinar si esta celda es fuente o destino
+                                      const isSource = fwInfo.from.instructionIndex === instIndex && fwInfo.from.stage === cellData.stage;
+                                      const isDestination = fwInfo.to.instructionIndex === instIndex && fwInfo.to.stage === cellData.stage;
+                                      
+                                      if (!isSource && !isDestination) return null;
+                                      
+                                      return (
+                                        <div 
+                                          key={`fw-${idx}`}
+                                          className={cn(
+                                            "absolute bg-purple-700 text-white text-xs rounded-full flex items-center justify-center shadow-md",
+                                            isSource 
+                                              ? "-top-2 -right-2 w-6 h-6 z-30" 
+                                              : "-top-2 -left-2 w-6 h-6 z-30"
+                                          )}
+                                          title={isSource 
+                                            ? `Envía R${fwInfo.register} a instrucción ${fwInfo.to.instructionIndex + 1}` 
+                                            : `Recibe R${fwInfo.register} de instrucción ${fwInfo.from.instructionIndex + 1}`
+                                          }
+                                        >
+                                          <span className="text-[10px] font-bold">{isSource ? 'S' : 'D'}</span>
+                                          <span className="text-[8px] absolute bottom-0 right-0 bg-purple-900 rounded-full w-3 h-3 flex items-center justify-center">
+                                            {fwInfo.register}
+                                          </span>
+                                        </div>
+                                      );
+                                    })}
                                   </>
                                 )}
                               </div>
@@ -396,6 +432,25 @@ export function PipelineVisualization() {
                                 }}
                                 isStall={false}
                               />
+                              {/* Añadir información de forwarding al tooltip si existe */}
+                              {forwardingInfo.length > 0 && (
+                                <div className="mt-2 pt-2 border-t border-gray-200">
+                                  <div className="font-medium text-xs text-purple-700">Forwarding activo:</div>
+                                  <ul className="text-xs mt-1 space-y-1">
+                                    {forwardingInfo.map((fw, idx) => {
+                                      const isSource = fw.from.instructionIndex === instIndex && fw.from.stage === cellData.stage;
+                                      return (
+                                        <li key={idx} className="flex items-center gap-1">
+                                          {isSource 
+                                            ? `Envía R${fw.register} a instrucción ${fw.to.instructionIndex + 1} (${STAGES[fw.to.stage].name})`
+                                            : `Recibe R${fw.register} de instrucción ${fw.from.instructionIndex + 1} (${STAGES[fw.from.stage].name})`
+                                          }
+                                        </li>
+                                      );
+                                    })}
+                                  </ul>
+                                </div>
+                              )}
                             </TooltipContent>
                           </Tooltip>
                         </TableCell>
