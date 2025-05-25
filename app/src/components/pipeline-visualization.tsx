@@ -16,6 +16,14 @@ import { AlertTriangle, Zap, Clock, Download, Code2, Cpu, MemoryStick, CheckSqua
 import { cn } from '@/lib/utils';
 import { useSimulationState } from '@/context/SimulationContext';
 import { decodeHexToInstructions } from '@/lib/mips-decoder';
+import ForwardingArrow from './forwarding-arrow';
+import InstructionTooltip from './instruction-detail';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export const STAGES = [
   { name: 'IF', icon: Download, description: 'Instruction Fetch' },
@@ -40,6 +48,43 @@ export function PipelineVisualization() {
 
   const hasStarted = currentCycle > 0;
   const [pipelineMatrix, setPipelineMatrix] = React.useState<{ [key: string]: { [cycle: number]: any } }>({});
+
+  // Referencia para el contenedor de la tabla
+  const tableContainerRef = React.useRef<HTMLDivElement>(null);
+  
+  // Estado para almacenar las posiciones de las celdas
+  const [cellPositions, setCellPositions] = React.useState<{[key: string]: DOMRect}>({});
+  
+  // Función para calcular y almacenar las posiciones de las celdas relevantes
+  const calculateCellPositions = React.useCallback(() => {
+    if (!tableContainerRef.current) return;
+    
+    const newPositions: {[key: string]: DOMRect} = {};
+    const cells = tableContainerRef.current.querySelectorAll('[data-cell-id]');
+    
+    cells.forEach((cell) => {
+      const cellId = cell.getAttribute('data-cell-id');
+      if (cellId) {
+        newPositions[cellId] = cell.getBoundingClientRect();
+      }
+    });
+    
+    setCellPositions(newPositions);
+  }, []);
+  
+  // Calcular posiciones cuando cambia el ciclo actual o el historial
+  React.useEffect(() => {
+    calculateCellPositions();
+    // Agregar un pequeño retraso para asegurar que el DOM esté actualizado
+    const timer = setTimeout(calculateCellPositions, 100);
+    return () => clearTimeout(timer);
+  }, [currentCycle, pipelineHistory, calculateCellPositions]);
+  
+  // Recalcular posiciones en el resize de la ventana
+  React.useEffect(() => {
+    window.addEventListener('resize', calculateCellPositions);
+    return () => window.removeEventListener('resize', calculateCellPositions);
+  }, [calculateCellPositions]);
 
   // Construir la matriz de visualización desde el historial
   const buildVisualizationMatrix = () => {
@@ -232,152 +277,229 @@ export function PipelineVisualization() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <Table className="min-w-max">
-            <TableCaption>
-              MIPS instruction pipeline visualization
-              {stallsEnabled && " with hazard detection"}
-              {forwardingEnabled && " and forwarding"}
-            </TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[200px] sticky left-0 bg-card z-10 border-r">
-                  Instruction
-                </TableHead>
-                {cycleNumbers.map((c) => (
-                  <TableHead key={`cycle-${c}`} className={cn(
-                    "text-center w-20",
-                    c === currentCycle && !isFinished && "bg-accent/20"
-                  )}>
-                    <div className="flex flex-col items-center">
-                      <span>Cycle {c}</span>
-                      {c === currentCycle && !isFinished && (
-                        <Clock className="w-3 h-3 mt-1 text-accent" />
-                      )}
-                    </div>
+        <div className="overflow-x-auto relative" ref={tableContainerRef}>
+          <TooltipProvider>
+            <Table className="min-w-max">
+              <TableCaption>
+                MIPS instruction pipeline visualization
+                {stallsEnabled && " with hazard detection"}
+                {forwardingEnabled && " and forwarding"}
+              </TableCaption>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[200px] sticky left-0 bg-card z-10 border-r">
+                    Instruction
                   </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {/* Instrucciones normales */}
-              {instructions.map((inst, instIndex) => (
-                <TableRow key={`inst-${instIndex}`}>
-                  <TableCell className="font-mono sticky left-0 bg-card z-10 border-r p-2">
-                    <div className="space-y-1">
-                      <div className="font-medium">{inst}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {(() => {
-                          const decoded = decodedInstructions[instIndex];
-                          return (decodeHexToInstructions(decoded, instIndex))
-                        })()}
+                  {cycleNumbers.map((c) => (
+                    <TableHead key={`cycle-${c}`} className={cn(
+                      "text-center w-20",
+                      c === currentCycle && !isFinished && "bg-accent/20"
+                    )}>
+                      <div className="flex flex-col items-center">
+                        <span>Cycle {c}</span>
+                        {c === currentCycle && !isFinished && (
+                          <Clock className="w-3 h-3 mt-1 text-accent" />
+                        )}
                       </div>
-                    </div>
-                  </TableCell>
-                  {cycleNumbers.map((c) => {
-                    const cellData = pipelineMatrix[`inst-${instIndex}`]?.[c];
-                    
-                    if (!cellData) {
-                      return (
-                        <TableCell key={`inst-${instIndex}-cycle-${c}`} 
-                          className="text-center w-20 h-16 border-l border-muted/20" />
-                      );
-                    }
-
-                    const stageData = STAGES[cellData.stage];
-                    const hasActiveForwarding = cellData.hasForwardingFromActive || cellData.hasForwardingToActive;
-                    const hasForwardingHistory = cellData.hasParticipatedInForwarding;
-
-                    return (
-                      <TableCell
-                        key={`inst-${instIndex}-cycle-${c}`}
-                        className={cn(
-                          'text-center w-20 h-16 relative transition-all duration-300 border-l border-muted/20',
-                          // Prioridad de colores: Forwarding activo > Forwarding histórico > Stall > Estado normal
-                          hasActiveForwarding ? 'bg-purple-300 border-purple-400' : // Forwarding activo (más intenso)
-                          hasForwardingHistory ? 'bg-purple-100 border-purple-200' : // Forwarding histórico (más sutil)
-                          cellData.isStalled ? 'bg-orange-200 border-orange-300' : // Color de stall
-                          cellData.isActive && !isFinished ? 'bg-accent text-accent-foreground' :
-                          cellData.isPast ? 'bg-secondary/60' :
-                          'bg-background'
-                        )}
-                      >
-                        {stageData && (
-                          <div className="flex flex-col items-center justify-center h-full">
-                            <stageData.icon className={cn(
-                              "w-5 h-5 mb-1",
-                              hasActiveForwarding ? "text-purple-800" : // Forwarding activo (más oscuro)
-                              hasForwardingHistory ? "text-purple-600" : // Forwarding histórico (medio)
-                              cellData.isStalled ? "text-orange-700" : ""
-                            )} />
-                            <span className={cn(
-                              "text-xs font-medium",
-                              hasActiveForwarding ? "text-purple-800" : // Forwarding activo (más oscuro)
-                              hasForwardingHistory ? "text-purple-600" : // Forwarding histórico (medio)
-                              cellData.isStalled ? "text-orange-700" : ""
-                            )}>
-                              {stageData.name}
-                            </span>
-                            
-                            {/* Indicador de forwarding activo */}
-                            {cellData.hasForwardingFromActive && (
-                              <div className="absolute -top-1 -right-1 bg-purple-700 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
-                                →
-                              </div>
-                            )}
-                            {cellData.hasForwardingToActive && (
-                              <div className="absolute -top-1 -left-1 bg-purple-700 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
-                                ←
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </TableCell>
-                    );
-                  })}
+                    </TableHead>
+                  ))}
                 </TableRow>
-              ))}
-              
-              {Object.keys(pipelineMatrix)
-                .filter(key => key.startsWith('bubble-'))
-                .map((bubbleKey) => {
-                  // Extraer el ciclo del bubble key (bubble-[cycle]-[stallIdx])
-                  const cyclePart = bubbleKey.split('-')[1];
-                  
-                  return (
-                    <TableRow key={bubbleKey} className="border-t border-orange-300">
-                      <TableCell className="font-mono sticky left-0 bg-orange-50 z-10 border-r p-2">
-                        <div className="space-y-1">
-                          <div className="font-medium text-orange-600 flex items-center gap-1">
-                            <AlertTriangle className="w-4 h-4" />
-                            STALL (Ciclo {cyclePart})
-                          </div>
+              </TableHeader>
+              <TableBody>
+                {/* Instrucciones normales */}
+                {instructions.map((inst, instIndex) => (
+                  <TableRow key={`inst-${instIndex}`}>
+                    <TableCell className="font-mono sticky left-0 bg-card z-10 border-r p-2">
+                      <div className="space-y-1">
+                        <div className="font-medium">{inst}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {(() => {
+                            const decoded = decodedInstructions[instIndex];
+                            return (decodeHexToInstructions(decoded, instIndex))
+                          })()}
                         </div>
-                      </TableCell>
-                      {cycleNumbers.map((c) => {
-                        const bubbleData = pipelineMatrix[bubbleKey][c];
-                        
+                      </div>
+                    </TableCell>
+                    {cycleNumbers.map((c) => {
+                      const cellData = pipelineMatrix[`inst-${instIndex}`]?.[c];
+                      
+                      if (!cellData) {
                         return (
-                          <TableCell key={`${bubbleKey}-cycle-${c}`} className={cn(
-                            'text-center w-20 h-16 border-l border-muted/20',
-                            bubbleData && c === currentCycle ? 'bg-orange-300' :
-                            bubbleData ? 'bg-orange-200' : ''
-                          )}>
-                            {bubbleData && (
-                              <div className="flex flex-col items-center justify-center h-full">
-                                <AlertTriangle className="w-5 h-5 mb-1 text-orange-600" />
-                                <span className="text-xs font-medium text-orange-600">BUBBLE</span>
-                              </div>
-                            )}
-                          </TableCell>
+                          <TableCell key={`inst-${instIndex}-cycle-${c}`} 
+                            className="text-center w-20 h-16 border-l border-muted/20" />
                         );
-                      })}
-                    </TableRow>
-                  );
-              })}
-            </TableBody>
-          </Table>
+                      }
+
+                      const stageData = STAGES[cellData.stage];
+                      const hasActiveForwarding = cellData.hasForwardingFromActive || cellData.hasForwardingToActive;
+                      const hasForwardingHistory = cellData.hasParticipatedInForwarding;
+
+                      return (
+                        <TableCell
+                          key={`inst-${instIndex}-cycle-${c}`}
+                          data-cell-id={`cell-${instIndex}-${c}-${cellData.stage}`}
+                          className={cn(
+                            'text-center w-20 h-16 relative transition-all duration-300 border-l border-muted/20',
+                            // Prioridad de colores: Forwarding activo > Forwarding histórico > Stall > Estado normal
+                            hasActiveForwarding ? 'bg-purple-300 border-purple-400' : // Forwarding activo (más intenso)
+                            hasForwardingHistory ? 'bg-purple-100 border-purple-200' : // Forwarding histórico (más sutil)
+                            cellData.isStalled ? 'bg-orange-200 border-orange-300' : // Color de stall
+                            cellData.isActive && !isFinished ? 'bg-accent text-accent-foreground' :
+                            cellData.isPast ? 'bg-secondary/60' :
+                            'bg-background'
+                          )}
+                        >
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex flex-col items-center justify-center h-full w-full cursor-pointer">
+                                {stageData && (
+                                  <>
+                                    <stageData.icon className={cn(
+                                      "w-5 h-5 mb-1",
+                                      hasActiveForwarding ? "text-purple-800" : // Forwarding activo (más oscuro)
+                                      hasForwardingHistory ? "text-purple-600" : // Forwarding histórico (medio)
+                                      cellData.isStalled ? "text-orange-700" : ""
+                                    )} />
+                                    <span className={cn(
+                                      "text-xs font-medium",
+                                      hasActiveForwarding ? "text-purple-800" : // Forwarding activo (más oscuro)
+                                      hasForwardingHistory ? "text-purple-600" : // Forwarding histórico (medio)
+                                      cellData.isStalled ? "text-orange-700" : ""
+                                    )}>
+                                      {stageData.name}
+                                    </span>
+                                    
+                                    {/* Indicador de forwarding activo */}
+                                    {cellData.hasForwardingFromActive && (
+                                      <div className="absolute -top-1 -right-1 bg-purple-700 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                                        →
+                                      </div>
+                                    )}
+                                    {cellData.hasForwardingToActive && (
+                                      <div className="absolute -top-1 -left-1 bg-purple-700 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                                        ←
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="p-2 max-w-xs bg-white shadow-lg rounded border z-50">
+                              <InstructionTooltip 
+                                hex={inst}
+                                decoded={cellData.decoded || {
+                                  type: 'Unknown',
+                                  readsFrom: [],
+                                  writesTo: [],
+                                  isLoad: false,
+                                  isStore: false
+                                }}
+                                isStall={false}
+                              />
+                            </TooltipContent>
+                          </Tooltip>
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+                
+                {/* Bubbles/Stalls */}
+                {Object.keys(pipelineMatrix)
+                  .filter(key => key.startsWith('bubble-'))
+                  .map((bubbleKey) => {
+                    // Extraer el ciclo del bubble key (bubble-[cycle]-[stallIdx])
+                    const cyclePart = bubbleKey.split('-')[1];
+                    
+                    return (
+                      <TableRow key={bubbleKey} className="border-t border-orange-300">
+                        <TableCell className="font-mono sticky left-0 bg-orange-50 z-10 border-r p-2">
+                          <div className="space-y-1">
+                            <div className="font-medium text-orange-600 flex items-center gap-1">
+                              <AlertTriangle className="w-4 h-4" />
+                              STALL (Ciclo {cyclePart})
+                            </div>
+                          </div>
+                        </TableCell>
+                        {cycleNumbers.map((c) => {
+                          const bubbleData = pipelineMatrix[bubbleKey][c];
+                          
+                          return (
+                            <TableCell key={`${bubbleKey}-cycle-${c}`} className={cn(
+                              'text-center w-20 h-16 border-l border-muted/20',
+                              bubbleData && c === currentCycle ? 'bg-orange-300' :
+                              bubbleData ? 'bg-orange-200' : ''
+                            )}>
+                              {bubbleData && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="flex flex-col items-center justify-center h-full cursor-pointer">
+                                      <AlertTriangle className="w-5 h-5 mb-1 text-orange-600" />
+                                      <span className="text-xs font-medium text-orange-600">BUBBLE</span>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="p-2 max-w-xs bg-white shadow-lg rounded border z-50">
+                                    <InstructionTooltip 
+                                      hex="BUBBLE"
+                                      decoded={{}}
+                                      isStall={true}
+                                    />
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    );
+                })}
+              </TableBody>
+            </Table>
+          </TooltipProvider>
+          
+          {/* Capa para las flechas de forwarding */}
+          <div className="absolute inset-0 pointer-events-none">
+            {forwardingPaths.map((path, index) => {
+              const fromCellId = `cell-${path.from.instructionIndex}-${currentCycle}-${path.from.stage}`;
+              const toCellId = `cell-${path.to.instructionIndex}-${currentCycle}-${path.to.stage}`;
+              
+              const fromRect = cellPositions[fromCellId];
+              const toRect = cellPositions[toCellId];
+              
+              if (!fromRect || !toRect) return null;
+              
+              // Calcular posición y dimensiones para la flecha
+              const containerRect = tableContainerRef.current?.getBoundingClientRect();
+              if (!containerRect) return null;
+              
+              const left = (fromRect.left - containerRect.left) + (fromRect.width / 2);
+              const top = (fromRect.top - containerRect.top) + (fromRect.height / 2);
+              const width = ((toRect.left - containerRect.left) + (toRect.width / 2)) - left;
+              
+              return (
+                <div 
+                  key={`arrow-${index}`}
+                  className="absolute bg-purple-500 h-1"
+                  style={{
+                    left: `${left}px`,
+                    top: `${top}px`,
+                    width: `${Math.abs(width)}px`,
+                    transform: width < 0 ? 'scaleX(-1)' : 'none'
+                  }}
+                >
+                  {/* Punta de flecha */}
+                  <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-0 h-0 border-l-4 border-l-purple-500 border-y-4 border-y-transparent" />
+                  
+                  {/* Etiqueta de registro */}
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full bg-purple-500 text-white text-xs px-1 rounded">
+                    R{path.register}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
+
         {hasStarted && (
           <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
             <div className="p-3 bg-muted/50 rounded-md">
